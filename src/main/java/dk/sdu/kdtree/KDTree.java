@@ -31,7 +31,7 @@ public class KDTree<T> {
 	 * @param dimensions
 	 * @param collection
 	 */
-	public KDTree(int dimensions, Map<List<Number>, T> collection) {
+	public KDTree(int dimensions, Map<Double[], T> collection) {
 		this.size = 0;
 		this.dimensions = dimensions;
 		smartInit(collection);
@@ -41,7 +41,7 @@ public class KDTree<T> {
 	 * Will find the median value, to make the tree more balanced from the start
 	 * @param collection 
 	 */
-	private void smartInit(Map<List<Number>, T> collection) {
+	private void smartInit(Map<Double[], T> collection) {
 		
 	}
 	
@@ -50,14 +50,14 @@ public class KDTree<T> {
 	 * @param key
 	 * @param value
 	 */
-	public void put(List<Number> keys, T value) throws IllegalArgumentException {
-		if(keys.size() != this.dimensions){
+	public void put(T value, Double... keys) throws IllegalArgumentException {
+		if(keys.length != this.dimensions){
 			throw new IllegalArgumentException("Keys does not math dimensions");
 		}
 		if(root == null) {
-			root = new KDNode<T>(keys, value, 0);
+			root = new KDNode<T>(value, 0, keys);
 		} else {
-			this.root.put(keys, value);
+			this.root.put(value, keys);
 		}
 		this.size++;
 	}
@@ -69,20 +69,19 @@ public class KDTree<T> {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	@SuppressWarnings("unchecked")
-	public Optional<Map.Entry<List<Number>, T>> findClosest(List<Number> position, Number radius) throws IllegalArgumentException {
-		if(position.size() != this.dimensions){
+	public Optional<Map.Entry<Double[], T>> findClosest(Double[]  position, Double radius) throws IllegalArgumentException {
+		if(position.length != this.dimensions){
 			throw new IllegalArgumentException("Keys does not math dimensions");
 		}
 		if(root == null){
 			return Optional.empty();
 		}
-		return toOptinalEntry(root.findClosest(position, radius));
+		return toOptinalEntry(root.findClosest(radius, null, position));
 		
 	}
 	
-	private Optional<Entry<List<Number>, T>> toOptinalEntry(KDNode<T> closest) {
-		return Optional.of(new KDEntry<List<Number>, T>(closest.getKeys(), closest.getValue()));
+	private Optional<Entry<Double[] , T>> toOptinalEntry(KDNode<T> closest) {
+		return Optional.of(new KDEntry<Double[], T>(closest.getKeys(), closest.getValue()));
 	}
 
 	/**
