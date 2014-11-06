@@ -1,0 +1,12 @@
+*.class
+
+# Mobile tool for java (J2ME)
+.mjt.tmp/
+
+build/*
+
+*.jar
+*.war
+*.ear
+
+hs_err_pid*
