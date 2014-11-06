@@ -10,3 +10,6 @@ build/*
 *.ear
 
 hs_err_pid*
+
+# Eclipse specific
+.settings/
