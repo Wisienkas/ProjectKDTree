@@ -1,8 +1,9 @@
 package dk.sdu.kdtree;
 
-public interface Distanceable<T> extends Comparable<T>{
+public interface Distanceable{
 	
-	public T getDistance(T other);
-	public T get();
+	public Distanceable getDistance(Distanceable other);
+	public boolean isHigher(Distanceable other);
+	public Distanceable get();
 	
 }
