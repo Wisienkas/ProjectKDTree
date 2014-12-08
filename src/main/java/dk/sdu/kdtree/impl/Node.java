@@ -8,11 +8,11 @@ import dk.sdu.kdtree.Dimensionable;
 import dk.sdu.kdtree.Distanceable;
 import dk.sdu.kdtree.KDNode;
 
-public class Node<K extends Dimensionable<D>, D extends Distanceable, V>
-		implements KDNode<K, D, V> {
+public class Node<K extends Dimensionable, D extends Distanceable, V>
+		implements KDNode<K, V> {
 
 	private K dimensionable;
-	private Optional<KDNode<K, D, V>> leftChild, rightChild, parent;
+	private Optional<KDNode<K, V>> leftChild, rightChild, parent;
 	private int depth;
 	private V value;
 	private int underlyingNodes;
@@ -33,34 +33,34 @@ public class Node<K extends Dimensionable<D>, D extends Distanceable, V>
 	}
 
 	@Override
-	public void setParent(KDNode<K, D, V> node) {
+	public void setParent(KDNode<K, V> node) {
 		this.parent = Optional.ofNullable(node);
 	}
 
 	@Override
-	public void setLeftChild(KDNode<K, D, V> node) {
+	public void setLeftChild(KDNode<K, V> node) {
 		node.setParent(this);
 		this.leftChild = Optional.of(node);
 	}
 
 	@Override
-	public void setRightChild(KDNode<K, D, V> node) {
+	public void setRightChild(KDNode<K, V> node) {
 		node.setParent(this);
 		this.rightChild = Optional.of(node);
 	}
 
 	@Override
-	public Optional<KDNode<K, D, V>> getOptLeftChild() {
+	public Optional<KDNode<K, V>> getOptLeftChild() {
 		return this.leftChild;
 	}
 
 	@Override
-	public Optional<KDNode<K, D, V>> getOptRightChild() {
+	public Optional<KDNode<K, V>> getOptRightChild() {
 		return this.rightChild;
 	}
 
 	@Override
-	public Optional<KDNode<K, D, V>> getOptParent() {
+	public Optional<KDNode<K, V>> getOptParent() {
 		return this.parent;
 	}
 
@@ -75,7 +75,7 @@ public class Node<K extends Dimensionable<D>, D extends Distanceable, V>
 	}
 
 	@Override
-	public boolean insert(KDNode<K, D, V> node) throws IllegalArgumentException {
+	public boolean insert(KDNode<K, V> node) throws IllegalArgumentException {
 		boolean result = false;
 		if (node.getDimensionable()
 				.getDimensionKey(this.getDepth())
@@ -102,7 +102,7 @@ public class Node<K extends Dimensionable<D>, D extends Distanceable, V>
 	}
 
 	@Override
-	public boolean remove(KDNode<K, D, V> node) throws IllegalArgumentException {
+	public boolean remove(KDNode<K, V> node) throws IllegalArgumentException {
 		boolean result = false;
 		if (node.equals(this)) {
 			if (getOptLeftChild().isPresent() || getOptRightChild().isPresent()) {
@@ -149,7 +149,7 @@ public class Node<K extends Dimensionable<D>, D extends Distanceable, V>
 	}
 
 	@Override
-	public boolean[] remove(KDNode<K, D, V>[] nodes)
+	public boolean[] remove(KDNode<K, V>[] nodes)
 			throws IllegalArgumentException {
 		return null;
 	}
@@ -165,9 +165,9 @@ public class Node<K extends Dimensionable<D>, D extends Distanceable, V>
 	}
 
 	@Override
-	public KDNode<K, D, V> findNearby(K point) throws IllegalArgumentException {
-		KDNode<K, D, V> result = this;
-		switch (getExpansionPath(point)) {
+	public KDNode<K, V> findNearby(K point) throws IllegalArgumentException {
+		KDNode<K, V> result = this;
+		switch (getExpansionPath(point, point.getDimensionKey(depth).getDistance(getDimensionable().getDimensionKey(depth)))) {
 		case Right:
 			if (rightChild.isPresent()) {
 				if (!isCloserToPoint(point, result)) {
@@ -198,56 +198,98 @@ public class Node<K extends Dimensionable<D>, D extends Distanceable, V>
 		return result;
 	}
 
-	private boolean isCloserToPoint(K point, KDNode<K, D, V> current) {
+	@Override
+	public KDNode<K, V> findNearby(K point, Distanceable radius) throws IllegalArgumentException {
+		KDNode<K, V> result = this;
+		switch (getExpansionPath(point, point.getDimensionKey(depth).getDistance(getDimensionable().getDimensionKey(depth)))) {
+		case Right:
+			if (rightChild.isPresent()) {
+				if (!isCloserToPoint(point, result)) {
+					result = getOptRightChild().get();
+				}
+			}
+			break;
+		case Both:
+			if (rightChild.isPresent()) {
+				if (!isCloserToPoint(point, result)) {
+					result = getOptRightChild().get();
+				}
+			}
+			if (leftChild.isPresent()) {
+				if (!isCloserToPoint(point, result)) {
+					result = getOptLeftChild().get();
+				}
+			}
+			break;
+		case Left:
+			if (leftChild.isPresent()) {
+				if (!isCloserToPoint(point, result)) {
+					result = getOptLeftChild().get();
+				}
+			}
+			break;
+		}
+		return result;
+	}
+	
+	private boolean isCloserToPoint(K point, KDNode<K, V> current) {
 		return point.getDistance(getOptRightChild().get().getDimensionable())
 				.isHigher(point.getDistance(current.getDimensionable()));
 	}
 
-	private Expansion getExpansionPath(K point) {
+	private Expansion getExpansionPath(K point, Distanceable distanceable) {
 		if(point.getDimensionKey(depth).isHigher(getDimensionable().getDimensionKey(depth))) {
-			if(point.get)
+			// This case if point -> Right or both
+			if(point.getDimensionKey(depth).getDistance(getDimensionable().getDimensionKey(depth)).isHigher(distanceable)){
+				return Expansion.Both;
+			} else {
+				return Expansion.Right;
+			}
+		} 
+		// This case if point -> Left or both
+		if(point.getDimensionKey(depth).getDistance(getDimensionable().getDimensionKey(depth)).isHigher(distanceable)){
+			return Expansion.Both;
+		} else {
+			return Expansion.Left;
 		}
-		Distanceable thisToPoint = point.getDistance(getDimensionable().getDimensionKey(depth));
-		point.getDimensionKey(depth).isHigher(getDimensionable().getDimensionKey(depth))
-		return 0;
 	}
 
 	@Override
-	public List<KDNode<K, D, V>> findCircle(D radius, K points)
+	public List<KDNode<K, V>> findCircle(Distanceable radius, K points)
 			throws IllegalArgumentException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public List<KDNode<K, D, V>> findSquare(K from, K to)
+	public List<KDNode<K, V>> findSquare(K from, K to)
 			throws IllegalArgumentException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public List<KDNode<K, D, V>> traversal() {
+	public List<KDNode<K, V>> traversal() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public List<KDNode<K, D, V>> traversal(K from, K to)
+	public List<KDNode<K, V>> traversal(K from, K to)
 			throws IllegalArgumentException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public List<KDNode<K, D, V>> findAll(
-			Function<K, List<KDNode<K, D, V>>> findAllFunction) {
+	public List<KDNode<K, V>> findAll(
+			Function<K, List<KDNode<K, V>>> findAllFunction) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public List<KDNode<K, D, V>> find(Function<K, KDNode<K, D, V>> findFunction) {
+	public List<KDNode<K, V>> find(Function<K, KDNode<K, V>> findFunction) {
 		// TODO Auto-generated method stub
 		return null;
 	}
